@@ -5,15 +5,12 @@ from .state import GameState, Screen
 from .menu import title_menu, level_select
 from .play import play_level
 from .practice import practice_mode
-
 from .practice_level import practice_level
-
 from .selftest import run_self_tests
-
 from .demo import run_demo
+from .about import about_screen
 
-from .report import export_report_to_project_root
-from .about import about_screen  # <-- add this import
+
 
 def run_game() -> None:
     state = GameState()
@@ -33,7 +30,8 @@ def run_game() -> None:
         elif state.screen == Screen.DEMO:
             run_demo(state)
         elif state.screen == Screen.REPORT:
-            path = export_report_to_project_root()
+            from .report import export_report_to_project_root
+            export_report_to_project_root()
             print(f"\nReport written to: {path}")
             print("(Press Enter to return to menu)")
             try: input()
