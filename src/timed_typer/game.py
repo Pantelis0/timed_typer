@@ -1,6 +1,8 @@
 """
 Game loop orchestrator: transitions, timers, word dispatch.
 """
+import path
+
 from .state import GameState, Screen
 from .menu import title_menu, level_select
 from .play import play_level

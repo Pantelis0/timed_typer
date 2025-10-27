@@ -10,9 +10,7 @@ from .levels import get_level
 from .words import words_for_level, check_input
 from .timing import Stopwatch, wpm
 from .scoring import RunStats, update_accuracy, passed_level
-from .storage import save_pb
 from .ui_console import render_hud, toast, results_card
-
 
 HELP_TEXT = "Commands: :skip/s, :q/menu/quit/exit, :help/h"
 
@@ -97,13 +95,15 @@ def play_level(state: GameState) -> None:
     final_wpm = wpm(stats.chars_ok, final_seconds)
     update_accuracy(stats)
 
-    # 4) Results + persistence
+    # 4) Show results card
     results_card(cfg.name, stats, final_wpm)
 
+    # figure out if this run "passes" the level rules
     passed = (not interrupted) and passed_level(cfg, stats, final_wpm)
+
+    # 5) Tell the player what happened (UI toasts)
     if passed:
         toast("✅ Level passed! Next level unlocked.")
-        save_pb(state.current_level, final_wpm, stats.accuracy)
     elif interrupted:
         toast("📝 Run ended early (no unlock).")
     else:
@@ -115,12 +115,25 @@ def play_level(state: GameState) -> None:
         toast(f"   You had {have_wpm:.1f} WPM and {have_acc}% acc.")
         if have_acc < need_acc and have_wpm >= need_wpm - 2:
             toast("Tip: Slow down slightly; focus on clean first 3 letters.")
-        elif have_wpm < need_wpm and have_acc >= need_acc - 2:
+        elif have_wpm < need_wpm and stats.accuracy * 100 >= need_acc - 2:
             toast("Tip: You’re accurate—push speed on short words.")
         else:
             toast("Tip: Aim for small streaks of 3–5 perfect words.")
 
-    # 5) Pause here, then go back to MENU explicitly
+    # 6) >>> PERSIST PROGRESS <<<  ### NEW
+    # This is the critical part you were asking about.
+    # We call the GameState helper so it:
+    #   - records PB for this level
+    #   - unlocks next level if `passed`
+    #   - writes all that to disk (JSON)
+    state.after_level_finish(
+        level_id=state.current_level,
+        wpm=final_wpm,
+        acc=stats.accuracy,
+        passed=passed,
+    )
+
+    # 7) Pause here, then go back to MENU explicitly
     toast("(Press Enter to return to menu)")
     try:
         input()
